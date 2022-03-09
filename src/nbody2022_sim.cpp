@@ -6,9 +6,6 @@ static auto init_height = 0;
 static auto init_width = 0;
 static auto init_camera = std::unique_ptr<Camera3D>{nullptr};
 
-// textures
-static auto tex_rounded = std::unique_ptr<Texture2D>{nullptr};
-
 void sim::init(const U32 width, const U32 height, const U32 fps_target = 60,
                const bool fullscreen = false) {
   if (!init_ok) {
@@ -28,9 +25,10 @@ void sim::init(const U32 width, const U32 height, const U32 fps_target = 60,
         .fovy = 110.0f,
         .projection = CAMERA_PERSPECTIVE,
     });
-    tex_rounded =
-        std::make_unique<Texture2D>(LoadTexture("./priv/round_blurred.png"));
-    bullet::init(64, 69);
+    const auto seed = std::random_device{}();
+    std::printf("N-body seed is %u\n", seed);
+    bullet::init(128, seed);
+    // SetCameraMode(*init_camera, CAMERA_ORBITAL);
   } else {
     throw std::runtime_error{
         "sim::init - already initialized, no need to do it again"};
@@ -41,23 +39,25 @@ void sim::tick() {
   ClearBackground(BLACK);
   UpdateCamera(init_camera.get());
   BeginMode3D(*init_camera);
+  DrawGrid(8, 1.0f);
   DrawTriangle3D(Vector3{.x = 0.0f, .y = 0.0f, .z = -6.0f},
                  Vector3{.x = 0.5f, .y = 0.0f, .z = -7.0f},
                  Vector3{.x = -0.5f, .y = 0.0f, .z = -7.0f}, RAYWHITE);
   auto &&bullets = bullet::tick_all();
   for (auto &&i : *bullets) {
     auto pos = Vector3{.x = i.position.x, .y = i.position.y, .z = i.position.z};
-    DrawRay(Ray{.position = pos, .direction = Vector3{.x = i.delta.x, .y = i.delta.y, .z = i.delta.z}}, RAYWHITE);
-      DrawSphere(pos, i.mass / 256.0f, WHITE);
+    DrawRay(Ray{.position = pos,
+                .direction =
+                    Vector3{.x = i.delta.x, .y = i.delta.y, .z = i.delta.z}},
+            GRAY);
+    DrawSphere(pos, i.mass / 64.0f, RAYWHITE);
   }
   EndMode3D();
   DrawFPS(100, 100);
   EndDrawing();
-  }
-  void sim::deinit() {
-    bullet::deinit();
-    UnloadTexture(*tex_rounded);
-    tex_rounded = nullptr;
-    CloseWindow();
-    init_ok = false;
-  }
+}
+void sim::deinit() {
+  bullet::deinit();
+  CloseWindow();
+  init_ok = false;
+}

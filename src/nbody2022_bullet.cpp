@@ -1,26 +1,23 @@
 #include "../include/nbody2022_bullet.hpp"
 using namespace nbody;
 static auto init_ok = false;
-constexpr static auto g_force = 0.99f;
+constexpr static auto g_force = 0.00000002f;
 static auto bullets = std::unique_ptr<bullet::bullets_t>{nullptr};
 
 void bullet::information::async_calculate(bullet::information &this_bullet,
                                           const bullet::bullets_t &snapshot,
                                           std::atomic_uint_fast32_t *flag) {
-  std::for_each(snapshot.cbegin(), snapshot.cend(),
-                [&this_bullet](const auto snap_bullet) {
-                  const auto &falloff = snap_bullet.position /
-                                   glm::max(glm::distance(this_bullet.position,
-                                                          snap_bullet.position),
-                                            1.0f);
-                  this_bullet.delta =
-                      glm::fma(glm::vec3(0.0f),
-                               glm::vec3(0.99f), glm::vec3(0.0f));
-                  this_bullet.position += this_bullet.delta;
-                  this_bullet.position =
-                      glm::clamp(this_bullet.position, glm::vec3(-64.0f),
-                                 glm::vec3(64.0f));
-                });
+  const auto snapshot_size = snapshot.size();
+  std::for_each(
+      snapshot.cbegin(), snapshot.cend(),
+      [&this_bullet, snapshot_size](const auto snap_bullet) {
+        const auto &falloff =
+            glm::sqrt(glm::abs(this_bullet.position - snap_bullet.position));
+        this_bullet.delta += falloff * (g_force / snapshot_size);
+        this_bullet.position += this_bullet.delta;
+        this_bullet.position = glm::clamp(this_bullet.position,
+                                          glm::vec3(-64.0f), glm::vec3(64.0f));
+      });
   flag->fetch_sub(1);
   flag->notify_one();
 }
@@ -39,10 +36,12 @@ void bullet::init(const U32 num_bullets, const U32 seed) {
                         glm::vec3(rng_distribution(rng), rng_distribution(rng),
                                   rng_distribution(rng)) *
                         16.0f;
-                    this_bullet.delta = glm::vec3(0.0f);
+                    this_bullet.delta =
+                        glm::vec3(rng_distribution(rng), rng_distribution(rng),
+                                  rng_distribution(rng)) * 0.0001f;
                     this_bullet.mass =
                         1.0f +
-                        (glm::pow((rng_distribution(rng) / 2.0f) + 1.0f, 2.0f) *
+                        (glm::pow((rng_distribution(rng) + 1.0f) / 2.0f, 2.0f) *
                          16.0f);
                   });
   } else {
