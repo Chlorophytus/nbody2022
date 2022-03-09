@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(nbody2022 VERSION 0.1.0.1)
+project(nbody2022 VERSION 0.1.0.2)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(GRAPHICS GRAPHICS_API_OPENGL_43)
