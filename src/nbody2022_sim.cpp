@@ -27,7 +27,7 @@ void sim::init(const U32 width, const U32 height, const U32 fps_target = 60,
     });
     const auto seed = std::random_device{}();
     std::printf("N-body seed is %u\n", seed);
-    bullet::init(256, seed);
+    bullet::init(192, seed);
     // SetCameraMode(*init_camera, CAMERA_ORBITAL);
   } else {
     throw std::runtime_error{
@@ -50,7 +50,9 @@ void sim::tick() {
                 .direction =
                     Vector3{.x = i.delta.x, .y = i.delta.y, .z = i.delta.z}},
             GRAY);
-    DrawSphere(pos, i.mass / 64.0f, RAYWHITE);
+    DrawSphere(pos, i.mass / 64.0f,
+               Color{255, static_cast<U8>(i.mass * 8.0f),
+                     static_cast<U8>((255.0f - (i.mass * 8.0f))), 255});
   }
   EndMode3D();
   DrawFPS(100, 100);

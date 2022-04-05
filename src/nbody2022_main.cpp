@@ -6,7 +6,7 @@ int main(int argc, char **argv) {
   auto status = EXIT_FAILURE;
 
   try {
-    sim::init(1920, 1080, 60, false);
+    sim::init(1280, 720, 60, false);
     while (!WindowShouldClose()) {
       sim::tick();
     }
