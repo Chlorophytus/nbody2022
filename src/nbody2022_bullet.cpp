@@ -8,16 +8,16 @@ void bullet::information::async_calculate(bullet::information &this_bullet,
                                           const bullet::bullets_t &snapshot,
                                           std::atomic_uint_fast32_t *flag) {
   const auto snapshot_size = snapshot.size();
-  std::for_each(
-      snapshot.cbegin(), snapshot.cend(),
-      [&this_bullet, snapshot_size](const auto snap_bullet) {
-        const auto &falloff =
-            glm::sqrt(glm::abs(this_bullet.position - snap_bullet.position));
-        this_bullet.delta += falloff * (g_force / snapshot_size);
-        this_bullet.position += this_bullet.delta;
-        this_bullet.position = glm::clamp(this_bullet.position,
-                                          glm::vec3(-64.0f), glm::vec3(64.0f));
-      });
+  std::for_each(snapshot.cbegin(), snapshot.cend(),
+                [&this_bullet, snapshot_size](const auto snap_bullet) {
+                  const auto &falloff = glm::sqrt(
+                      glm::abs(this_bullet.position - snap_bullet.position));
+                  this_bullet.delta += falloff * (g_force / snapshot_size);
+                  this_bullet.position += this_bullet.delta;
+                  this_bullet.position =
+                      glm::clamp(this_bullet.position, glm::vec3(-64.0f),
+                                 glm::vec3(64.0f));
+                });
   flag->fetch_sub(1);
   flag->notify_one();
 }
@@ -38,7 +38,8 @@ void bullet::init(const U32 num_bullets, const U32 seed) {
                         16.0f;
                     this_bullet.delta =
                         glm::vec3(rng_distribution(rng), rng_distribution(rng),
-                                  rng_distribution(rng)) * 0.0001f;
+                                  rng_distribution(rng)) *
+                        0.0001f;
                     this_bullet.mass =
                         1.0f +
                         (glm::pow((rng_distribution(rng) + 1.0f) / 2.0f, 2.0f) *
@@ -53,8 +54,10 @@ bullet::bullets_t *bullet::tick_all() {
   const auto &&bullets_snapshot = bullet::bullets_t{*bullets};
   auto flag = std::atomic_uint_fast32_t{std::thread::hardware_concurrency()};
   for (auto &&this_bullet : *bullets) {
-    bullet::bullet_task_t{&bullet::information::async_calculate}
-        .make_ready_at_thread_exit(this_bullet, bullets_snapshot, &flag);
+    std::thread{[&this_bullet, bullets_snapshot, &flag]() {
+      bullet::bullet_task_t{&bullet::information::async_calculate}
+          .make_ready_at_thread_exit(this_bullet, bullets_snapshot, &flag);
+    }}.detach();
   }
   flag.wait(0);
   return bullets.get();

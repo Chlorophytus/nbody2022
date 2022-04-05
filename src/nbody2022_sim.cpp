@@ -27,7 +27,7 @@ void sim::init(const U32 width, const U32 height, const U32 fps_target = 60,
     });
     const auto seed = std::random_device{}();
     std::printf("N-body seed is %u\n", seed);
-    bullet::init(128, seed);
+    bullet::init(256, seed);
     // SetCameraMode(*init_camera, CAMERA_ORBITAL);
   } else {
     throw std::runtime_error{
